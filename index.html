@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>모바일 신분증</title>
+    <style>
+        :root { --blue: #3182f6; --bg: #f2f4f6; --dark: #1c1c1e; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); margin: 0; padding: 0; user-select: none; -webkit-tap-highlight-color: transparent; }
+
+        /* 설정 페이지 */
+        #setupPage { background: white; min-height: 100vh; padding: 25px; box-sizing: border-box; display: block; }
+        .input-group { margin-bottom: 12px; }
+        .input-group label { display: block; font-size: 12px; color: #888; margin-bottom: 4px; padding-left: 4px; }
+        .input-group input { width: 100%; padding: 14px; border: 1px solid #eee; border-radius: 12px; font-size: 16px; box-sizing: border-box; background: #fafafa; }
+        .btn-start { width: 100%; padding: 18px; background: var(--blue); color: white; border: none; border-radius: 12px; font-weight: bold; font-size: 17px; margin-top: 20px; cursor: pointer; }
+
+        /* 신분증 페이지 */
+        #idPage { display: none; background: white; height: 100vh; flex-direction: column; align-items: center; }
+        .id-header { width: 100%; padding: 16px 0; border-bottom: 1px solid #f0f0f0; text-align: center; font-weight: bold; font-size: 17px; position: relative; }
+        .id-header .back { position: absolute; left: 18px; font-size: 20px; cursor: pointer; color: #333; }
+        
+        .tab-menu { width: 100%; display: flex; border-bottom: 1px solid #f0f0f0; }
+        .tab-item { flex: 1; text-align: center; padding: 15px 0; font-size: 15px; color: #bbb; cursor: pointer; }
+        .tab-item.active { color: #000; border-bottom: 2px solid #000; font-weight: bold; }
+
+        /* 카드 박스 */
+        .card-box { width: 90%; max-width: 360px; background: white; border-radius: 28px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); margin-top: 30px; padding: 25px; box-sizing: border-box; text-align: center; }
+        .user-photo { width: 130px; height: 160px; background: #f8f8f8; margin: 0 auto 20px; border-radius: 10px; overflow: hidden; border: 1px solid #eee; display: flex; align-items: center; justify-content: center; }
+        .user-photo img { width: 100%; height: 100%; object-fit: cover; }
+        .name-text { font-size: 26px; font-weight: 800; margin-bottom: 15px; }
+
+        /* 정보 텍스트 */
+        .ssn-row { display: flex; justify-content: center; align-items: center; gap: 10px; margin-bottom: 15px; }
+        .ssn-text { font-size: 20px; font-weight: 600; letter-spacing: 0.5px; }
+        .switch { width: 44px; height: 24px; background: #e5e5ea; border-radius: 12px; position: relative; cursor: pointer; transition: 0.3s; }
+        .switch.on { background: #333; }
+        .switch::after { content: ''; position: absolute; width: 20px; height: 20px; background: white; border-radius: 50%; top: 2px; left: 2px; transition: 0.3s; }
+        .switch.on::after { left: 22px; }
+
+        .info-text { font-size: 15px; color: #444; line-height: 1.5; margin-bottom: 4px; }
+        .date-text { font-size: 15px; color: #444; margin-top: 15px; font-weight: 600; }
+        .auth-text { font-size: 15px; color: #444; font-weight: 600; margin-top: 4px; }
+
+        /* QR 및 타이머 */
+        #qrSection { display: none; padding: 10px 0; }
+        .qr-frame { width: 160px; height: 160px; margin: 0 auto; padding: 10px; border: 1px solid #f0f0f0; border-radius: 15px; background: #fff; }
+        .qr-frame img { width: 100%; height: 100%; }
+        .timer-ui { width: 100%; margin-top: 30px; }
+        .timer-label { font-size: 13px; color: #999; margin-bottom: 8px; }
+        .bar-bg { width: 100%; height: 5px; background: #f0f0f0; border-radius: 3px; overflow: hidden; }
+        .bar-fill { width: 100%; height: 100%; background: var(--blue); transform-origin: left; transition: transform 1s linear; }
+
+        .bottom-btn { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 360px; background: var(--dark); color: white; padding: 18px; border-radius: 16px; text-align: center; font-weight: bold; cursor: pointer; font-size: 16px; }
+    </style>
+</head>
+<body>
+
+    <div id="setupPage">
+        <h2 style="margin-bottom: 25px;">신분증 정보 입력</h2>
+        <div class="input-group"><label>성명</label><input type="text" id="inName" placeholder="홍길동"></div>
+        <div class="input-group"><label>주민번호 앞자리</label><input type="text" id="inSsn1" placeholder="000101"></div>
+        <div class="input-group"><label>주민번호 뒷자리</label><input type="text" id="inSsn2" placeholder="3012345"></div>
+        <div class="input-group"><label>주소</label><input type="text" id="inAddr" placeholder="경기도 부천시 길주로 123"></div>
+        <div class="input-group"><label>발급일자</label><input type="text" id="inDate" placeholder="2024.01.20"></div>
+        <div class="input-group"><label>발급기관</label><input type="text" id="inAuth" placeholder="부천시장"></div>
+        <div class="input-group"><label>증명사진</label><input type="file" accept="image/*" onchange="previewFile(this)"></div>
+        <button class="btn-start" onclick="saveAndStart()">신분증 생성 및 저장</button>
+    </div>
+
+    <div id="idPage">
+        <div class="id-header">
+            <span class="back" onclick="goBack()">〈</span>
+            모바일 신분증
+        </div>
+        <div class="tab-menu">
+            <div class="tab-item active">주민등록증</div>
+            <div class="tab-item">운전면허증</div>
+        </div>
+        <div class="card-box">
+            <div class="user-photo" id="resPhoto">사진 없음</div>
+            <div class="name-text" id="resName"></div>
+            <div id="detailSection">
+                <div class="ssn-row">
+                    <div class="ssn-text" id="resSsn"></div>
+                    <div class="switch" id="ssnSw" onclick="toggleSsnMask()"></div>
+                </div>
+                <div class="info-text" id="resAddr"></div>
+                <div class="date-text" id="resDate"></div>
+                <div class="auth-text" id="resAuth"></div>
+            </div>
+            <div id="qrSection">
+                <div class="qr-frame"><img id="qrImg" src=""></div>
+            </div>
+            <div class="timer-ui" id="timerUi">
+                <div class="timer-label">남은시간 <span id="secText">30</span>초</div>
+                <div class="bar-bg"><div class="bar-fill" id="barFill"></div></div>
+            </div>
+        </div>
+        <div class="bottom-btn" id="modeBtn" onclick="toggleViewMode()">QR정보 표시</div>
+    </div>
+
+    <script>
+        let userData = { s1: '', s2: '', pic: '' };
+        let timer = 30, timerInterval;
+
+        // 페이지 로드 시 저장된 데이터 확인
+        window.onload = function() {
+            const saved = localStorage.getItem('mobileID_Data');
+            if (saved) {
+                userData = JSON.parse(saved);
+                renderID();
+                showPage('idPage');
+                startTimer();
+            }
+        };
+
+        function previewFile(input) {
+            const reader = new FileReader();
+            reader.onload = (e) => userData.pic = e.target.result;
+            if(input.files[0]) reader.readAsDataURL(input.files[0]);
+        }
+
+        function saveAndStart() {
+            userData.name = document.getElementById('inName').value || "홍길동";
+            userData.s1 = document.getElementById('inSsn1').value || "000101";
+            userData.s2 = document.getElementById('inSsn2').value || "3012345";
+            userData.addr = document.getElementById('inAddr').value || "주소 미입력";
+            userData.date = document.getElementById('inDate').value || "2024.01.01";
+            userData.auth = document.getElementById('inAuth').value || "발급기관";
+
+            localStorage.setItem('mobileID_Data', JSON.stringify(userData));
+            renderID();
+            showPage('idPage');
+            startTimer();
+        }
+
+        function renderID() {
+            document.getElementById('resName').innerText = userData.name;
+            document.getElementById('resSsn').innerText = userData.s1 + " - ●●●●●●●";
+            document.getElementById('resAddr').innerText = userData.addr;
+            document.getElementById('resDate').innerText = userData.date;
+            document.getElementById('resAuth').innerText = userData.auth;
+            if(userData.pic) document.getElementById('resPhoto').innerHTML = `<img src="${userData.pic}">`;
+            updateQr();
+        }
+
+        function startTimer() {
+            if(timerInterval) clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                timer--;
+                if(timer < 0) {
+                    timer = 30;
+                    updateQr();
+                }
+                document.getElementById('secText').innerText = timer;
+                document.getElementById('barFill').style.transform = `scaleX(${timer/30})`;
+            }, 1000);
+        }
+
+        function updateQr() {
+            document.getElementById('qrImg').src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${Math.random()}`;
+        }
+
+        function toggleSsnMask() {
+            const sw = document.getElementById('ssnSw');
+            sw.classList.toggle('on');
+            document.getElementById('resSsn').innerText = sw.classList.contains('on') ? `${userData.s1} - ${userData.s2}` : `${userData.s1} - ●●●●●●●`;
+        }
+
+        function toggleViewMode() {
+            const isQr = document.getElementById('qrSection').style.display === 'block';
+            document.getElementById('qrSection').style.display = isQr ? 'none' : 'block';
+            document.getElementById('detailSection').style.display = isQr ? 'block' : 'none';
+            document.getElementById('timerUi').style.display = isQr ? 'block' : 'none';
+            document.getElementById('modeBtn').innerText = isQr ? "QR정보 표시" : "상세정보 표시";
+        }
+
+        function showPage(id) {
+            document.getElementById('setupPage').style.display = id === 'setupPage' ? 'block' : 'none';
+            document.getElementById('idPage').style.display = id === 'idPage' ? 'flex' : 'none';
+        }
+
+        function goBack() {
+            if(confirm("정보를 수정하시겠습니까?")) {
+                clearInterval(timerInterval);
+                showPage('setupPage');
+            }
+        }
+    </script>
+</body>
+</html>
